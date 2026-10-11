@@ -135,4 +135,3 @@ On Windows, building any project that uses native plugins requires Developer Mod
 ## Credits
 
 Plus Jakarta Sans is distributed under the SIL Open Font License. The licence file is included in `assets/fonts`.
-=======
