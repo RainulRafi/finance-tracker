@@ -4,6 +4,8 @@ A monthly budget tracker for Android. Instead of logging expenses after the fact
 
 Built with Flutter, Provider and SQLite. All data stays on the device.
 
+[Download the latest APK](https://github.com/RainulRafi/finance-tracker/releases/latest)
+
 ## Screenshots
 
 <table>
