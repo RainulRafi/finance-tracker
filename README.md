@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Finance Tracker
 
 A monthly budget tracker for Android. Instead of logging expenses after the fact and summing them up, you start by giving each spending category a budget, then record daily expenses against it and watch what is left.
