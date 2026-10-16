@@ -14,4 +14,14 @@ class CategoryRepository {
     final db = await dbHelper.database;
     await db.insert('categories', category.toMap());
   }
+
+  Future<void> updateCategory(CategoryModel category) async {
+    final db = await dbHelper.database;
+    await db.update(
+      'categories',
+      category.toMap(),
+      where: 'id = ?',
+      whereArgs: [category.id],
+    );
+  }
 }

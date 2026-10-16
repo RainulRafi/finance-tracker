@@ -26,4 +26,10 @@ class CategoryProvider extends ChangeNotifier {
     await _repository.insertCategory(category);
     await loadCategories();
   }
+
+  Future<void> updateCategory(CategoryModel category) async {
+    await _repository.updateCategory(category);
+    _categories = await _repository.getAllCategories();
+    notifyListeners();
+  }
 }
