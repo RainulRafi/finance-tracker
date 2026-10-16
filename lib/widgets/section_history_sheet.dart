@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../core/theme/app_colors.dart';
 import '../data/models/category_model.dart';
 import '../data/models/transaction_model.dart';
+import '../providers/category_provider.dart';
 import '../providers/transaction_provider.dart';
 import 'budget_warning.dart';
 import 'form_helpers.dart';
@@ -33,14 +34,21 @@ void showSectionHistorySheet(BuildContext context, CategoryModel category) {
         maxChildSize: 0.9,
         expand: false,
         builder: (context, scrollController) {
-          return Consumer<TransactionProvider>(
-            builder: (context, transactionProvider, child) {
+          return Consumer2<TransactionProvider, CategoryProvider>(
+            builder: (context, transactionProvider, categoryProvider, child) {
               final c = context.colors;
-              final budget = category.monthlyBudget ?? 0;
-              final spent = transactionProvider.spentForCategory(category.id!);
+
+              // ============================================
+              final current = categoryProvider.categories.firstWhere(
+                (cat) => cat.id == category.id,
+                orElse: () => category,
+              );
+
+              final budget = current.monthlyBudget ?? 0;
+              final spent = transactionProvider.spentForCategory(current.id!);
               final remaining = budget - spent;
               final entries = transactionProvider.transactionsForCategory(
-                category.id!,
+                current.id!,
               );
 
               return Padding(
@@ -48,15 +56,35 @@ void showSectionHistorySheet(BuildContext context, CategoryModel category) {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      category.name,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: c.ink,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            current.name,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: c.ink,
+                            ),
+                          ),
+                        ),
+
+                        TextButton(
+                          onPressed: () =>
+                              _showEditSectionSheet(context, current),
+                          child: Text(
+                            'Edit section',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: c.accentFg,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 10),
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
@@ -121,7 +149,7 @@ void showSectionHistorySheet(BuildContext context, CategoryModel category) {
                                             Text(
                                               entry.note?.isNotEmpty == true
                                                   ? entry.note!
-                                                  : category.name,
+                                                  : current.name,
                                               style: TextStyle(
                                                 fontWeight: FontWeight.w500,
                                                 color: c.ink,
@@ -148,7 +176,7 @@ void showSectionHistorySheet(BuildContext context, CategoryModel category) {
                                       GestureDetector(
                                         onTap: () => _showEditExpenseSheet(
                                           context,
-                                          category,
+                                          current,
                                           entry,
                                         ),
                                         child: Padding(
@@ -187,6 +215,117 @@ void showSectionHistorySheet(BuildContext context, CategoryModel category) {
             },
           );
         },
+      );
+    },
+  );
+}
+
+void _showEditSectionSheet(BuildContext context, CategoryModel category) {
+  final budgetTaka = (category.monthlyBudget ?? 0) / 100;
+  final nameController = TextEditingController(text: category.name);
+  final budgetController = TextEditingController(
+    text: budgetTaka == budgetTaka.roundToDouble()
+        ? budgetTaka.round().toString()
+        : budgetTaka.toString(),
+  );
+  final formKey = GlobalKey<FormState>();
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: context.colors.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+    ),
+    builder: (context) {
+      final c = context.colors;
+
+      return Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 24,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Edit section',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: c.ink,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const FieldLabel('Name'),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: nameController,
+                decoration: appInputDecoration(context),
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
+              ),
+              const SizedBox(height: 16),
+              const FieldLabel('Monthly budget'),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: budgetController,
+                keyboardType: TextInputType.number,
+                decoration: appInputDecoration(context, prefix: '৳ '),
+                validator: (v) {
+                  final n = double.tryParse(v ?? '');
+                  if (n == null) return 'Invalid number';
+
+                  if (n <= 0) return 'Must be more than 0';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (!formKey.currentState!.validate()) return;
+
+                    final updated = CategoryModel(
+                      id: category.id,
+                      name: nameController.text.trim(),
+                      type: category.type,
+                      iconCode: category.iconCode,
+                      colorValue: category.colorValue,
+                      monthlyBudget: (double.parse(budgetController.text) * 100)
+                          .round(),
+                      isDefault: category.isDefault,
+                    );
+
+                    await context.read<CategoryProvider>().updateCategory(
+                      updated,
+                    );
+                    if (context.mounted) Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: c.accent,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'Save',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     },
   );
@@ -267,7 +406,6 @@ void _showEditExpenseSheet(
                         firstDate: DateTime(2020),
                         lastDate: DateTime(2030),
                       );
-
                       if (picked != null) {
                         setSheetState(() => selectedDate = picked);
                       }
