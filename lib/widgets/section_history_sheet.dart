@@ -38,7 +38,6 @@ void showSectionHistorySheet(BuildContext context, CategoryModel category) {
             builder: (context, transactionProvider, categoryProvider, child) {
               final c = context.colors;
 
-              // ============================================
               final current = categoryProvider.categories.firstWhere(
                 (cat) => cat.id == category.id,
                 orElse: () => category,
@@ -69,7 +68,6 @@ void showSectionHistorySheet(BuildContext context, CategoryModel category) {
                             ),
                           ),
                         ),
-
                         TextButton(
                           onPressed: () =>
                               _showEditSectionSheet(context, current),
@@ -220,6 +218,65 @@ void showSectionHistorySheet(BuildContext context, CategoryModel category) {
   );
 }
 
+Future<bool> _confirmDeleteSection(
+  BuildContext context,
+  CategoryModel category,
+  int expenseCount,
+) async {
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      final c = dialogContext.colors;
+
+      final message = expenseCount == 0
+          ? 'This section has no expenses. It will be removed.'
+          : 'This also deletes $expenseCount '
+                '${expenseCount == 1 ? 'expense' : 'expenses'} from all months. '
+                'This cannot be undone.';
+
+      return AlertDialog(
+        backgroundColor: c.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: c.border),
+        ),
+        title: Text(
+          'Delete ${category.name}?',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: c.ink,
+          ),
+        ),
+        content: Text(
+          message,
+          style: TextStyle(fontSize: 14, color: c.muted, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: c.muted, fontWeight: FontWeight.w600),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(
+              'Delete',
+              style: TextStyle(color: c.danger, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+
+  return result ?? false;
+}
+
 void _showEditSectionSheet(BuildContext context, CategoryModel category) {
   final budgetTaka = (category.monthlyBudget ?? 0) / 100;
   final nameController = TextEditingController(text: category.name);
@@ -280,7 +337,6 @@ void _showEditSectionSheet(BuildContext context, CategoryModel category) {
                 validator: (v) {
                   final n = double.tryParse(v ?? '');
                   if (n == null) return 'Invalid number';
-
                   if (n <= 0) return 'Must be more than 0';
                   return null;
                 },
@@ -320,6 +376,43 @@ void _showEditSectionSheet(BuildContext context, CategoryModel category) {
                   child: const Text(
                     'Save',
                     style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () async {
+                    final transactionProvider = context
+                        .read<TransactionProvider>();
+                    final categoryProvider = context.read<CategoryProvider>();
+                    final count = transactionProvider
+                        .transactionCountForCategory(category.id!);
+
+                    final confirmed = await _confirmDeleteSection(
+                      context,
+                      category,
+                      count,
+                    );
+                    if (!confirmed) return;
+
+                    await categoryProvider.deleteCategory(category.id!);
+                    transactionProvider.removeTransactionsForCategory(
+                      category.id!,
+                    );
+
+                    if (context.mounted) {
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                    }
+                  },
+                  child: Text(
+                    'Delete section',
+                    style: TextStyle(
+                      color: c.danger,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
