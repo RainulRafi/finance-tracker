@@ -44,6 +44,7 @@ Budgets repeat every month. Spending is counted per calendar month, so a new mon
 - Budget warning that appears only when a threshold is crossed, not on every entry, with an on/off switch in Settings
 - Time-based greeting using the name you set
 - Light, Dark and System themes, remembered between launches
+- Edit a section's name and budget, or delete a section together with its expenses
 
 ## Tech stack
 
@@ -125,6 +126,7 @@ On Windows, building any project that uses native plugins requires Developer Mod
 - There are no automated tests yet.
 - The `type` and `colorValue` columns remain from an earlier design and are no longer used by the interface.
 - No export or backup of data.
+- Deleting a section permanently removes all of its expenses, with no undo.
 
 ## Roadmap
 
