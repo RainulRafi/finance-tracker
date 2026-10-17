@@ -32,4 +32,10 @@ class CategoryProvider extends ChangeNotifier {
     _categories = await _repository.getAllCategories();
     notifyListeners();
   }
+
+  Future<void> deleteCategory(int id) async {
+    await _repository.deleteCategory(id);
+    _categories.removeWhere((c) => c.id == id);
+    notifyListeners();
+  }
 }

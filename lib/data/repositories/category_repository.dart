@@ -24,4 +24,16 @@ class CategoryRepository {
       whereArgs: [category.id],
     );
   }
+
+  Future<void> deleteCategory(int id) async {
+    final db = await dbHelper.database;
+    await db.transaction((txn) async {
+      await txn.delete(
+        'transactions',
+        where: 'categoryId = ?',
+        whereArgs: [id],
+      );
+      await txn.delete('categories', where: 'id = ?', whereArgs: [id]);
+    });
+  }
 }

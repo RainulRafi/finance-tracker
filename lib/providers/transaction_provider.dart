@@ -59,6 +59,15 @@ class TransactionProvider extends ChangeNotifier {
   int get totalSpent =>
       monthTransactions.fold<int>(0, (sum, t) => sum + t.amount);
 
+  int transactionCountForCategory(int categoryId) {
+    return _transactions.where((t) => t.categoryId == categoryId).length;
+  }
+
+  void removeTransactionsForCategory(int categoryId) {
+    _transactions.removeWhere((t) => t.categoryId == categoryId);
+    notifyListeners();
+  }
+
   void previousMonth() {
     _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1);
     notifyListeners();
